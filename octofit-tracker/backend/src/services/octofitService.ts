@@ -6,6 +6,11 @@ export async function listActivities() {
 }
 
 export async function createActivity(input: unknown) {
+  // Reject missing or non-object input
+  if (!input || typeof input !== 'object') {
+    throw Object.assign(new Error('Request body must be a JSON object'), { status: 400 });
+  }
+  
   const body = input as Record<string, unknown>;
   
   // Validate required fields
@@ -59,6 +64,11 @@ export async function listTeams() {
 }
 
 export async function createTeam(input: unknown) {
+  // Reject missing or non-object input
+  if (!input || typeof input !== 'object') {
+    throw Object.assign(new Error('Request body must be a JSON object'), { status: 400 });
+  }
+  
   const body = input as Record<string, unknown>;
   
   // Validate name is required
@@ -81,6 +91,17 @@ export async function createTeam(input: unknown) {
       mascot: body.mascot || '',
       members: (body.members as string[]) || [],
     });
+    
+    // Reconcile user team references: update each member's User.team and remove from previous teams
+    if (body.members && Array.isArray(body.members)) {
+      for (const memberId of body.members as string[]) {
+        const previousMembership = await User.findById(memberId).select('_id team');
+        if (previousMembership?.team && previousMembership.team.toString() !== team._id.toString()) {
+          await Team.updateOne({ _id: previousMembership.team }, { $pull: { members: previousMembership._id } });
+        }
+        await User.updateOne({ _id: memberId }, { $set: { team: team._id } });
+      }
+    }
     
     return team.toObject();
   } catch (error) {
