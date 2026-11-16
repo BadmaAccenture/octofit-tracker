@@ -26,6 +26,16 @@ OctoFit Tracker is a three-tier application for a school fitness program. The st
 | Leaderboard | `GET /api/leaderboard` | Return teams ordered by the sum of their activity points, highest first. Each entry has `teamName`, `totalPoints`, and a 1-based `rank`. |
 | Workout suggestions | `GET /api/workouts/suggestions/:userEmail` | Recommend workouts from recent activity patterns for the matching seeded user's email address. The first suggestion's `focus` matches that user's goal or recent activity, with a `reason` explaining why. An email with no matching user returns a deliberate 4xx (for example, `404`). |
 
+## Implementation summary
+
+- Presentation tier decision: React 19 single-page application with four routed components (Activities, Teams, Leaderboard, Workouts) using Bootstrap styling and shared API client
+- Logic tier decision: Express API server with Mongoose services for activities, teams, leaderboard aggregation with ranking, and personalized workout suggestions based on fitness goals
+- Data tier decision: MongoDB collections for Users, Teams, Activities, and Workouts with Mongoose schema validation requiring name, email, fitnessGoal, type, minutes, points, and occurredAt fields
+- Activity tracking approach: Validate userId and teamId as valid ObjectIds referencing existing records, calculate points as minutes × 1.0, record timestamp via occurredAt field set to current date
+- Team management approach: Require team name and mascot fields, initialize members array defaulting to empty, support optional members parameter at creation time per test contract
+- Leaderboard approach: Use MongoDB aggregation to group activities by team and sum points, sort results by totalPoints descending, assign 1-based rank position to each team entry
+- Workout suggestions approach: Find user by email address, match workouts by user's fitnessGoal field or most recent activity type, include descriptive reason explaining personalization to user
+
 ## Implementation decisions
 
 ### Data tier (Mongoose models)
